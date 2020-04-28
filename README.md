@@ -1,4 +1,4 @@
-# MariaDB on Raspberry Pi / ARM (others arch should work too)
+# MariaDB on Raspberry Pi / ARM (other archs should work too)
 
 Slightly modified from https://github.com/Tob1asDocker/rpi-mariadb (Thank you!)
 
