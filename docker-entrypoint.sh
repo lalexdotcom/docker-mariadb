@@ -247,7 +247,7 @@ docker_setup_db() {
 
 	mysql_note ">> Create DBs and Users"
 	while IFS='=' read -r name value ; do
-		if [[ $name =~ ^MYSQL_DATABASE(_[A-Z_]+)$ ]] || [[ $name =~ ^MYSQL_DATABASE$ ]]
+		if [[ $name =~ ^([A-Z_]+)_DATABASE$ ]]
 		then
 			local db_name=$value
 			local db_key=${BASH_REMATCH[1]}
@@ -257,14 +257,16 @@ docker_setup_db() {
 				docker_process_sql --database=mysql <<<"CREATE DATABASE IF NOT EXISTS \`$db_name\` ;"
 			fi
 		fi
-		if [[ $name =~ ^MYSQL_USER(_[A-Z_]+)$ ]] || [[ $name =~ ^MYSQL_USER$ ]]
+		if [[ $name =~ ^([A-Z_]+)_USER$ ]]
 		then
 			local db_key=${BASH_REMATCH[1]}
-			local db_pass_var="MYSQL_PASSWORD$db_key"
-			local db_name_var="MYSQL_DATABASE$db_key"
+			local db_pass_var="${db_key}_PASSWORD"
+			local db_name_var="${db_key}_DATABASE"
+
 			local db_name=${!db_name_var}
 			local db_user=$value
 			local db_pass=${!db_pass_var}
+			
 			if [[ -n "$db_user" ]] && [[ -n "$db_pass" ]]
 			then
 				mysql_note "Creating user '${db_user}'"
