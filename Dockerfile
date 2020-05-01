@@ -1,11 +1,10 @@
 FROM debian:buster-slim
 
-LABEL org.opencontainers.image.authors="Docker Community Authors, Tobias Hargesheimer <docker@ison.ws>" \
+LABEL org.opencontainers.image.authors="LAlex" \
 	org.opencontainers.image.title="MariaDB" \
-	org.opencontainers.image.description="Debian 10 Buster with MariaDB 10.3 on arm arch" \
+	org.opencontainers.image.description="Debian 10 Buster with MariaDB 10.3 on arm arch, forked from https://github.com/Tob1asDocker/rpi-mariadb" \
 	org.opencontainers.image.licenses="GPL-2.0" \
-	org.opencontainers.image.url="https://hub.docker.com/r/tobi312/rpi-mariadb" \
-	org.opencontainers.image.source="https://github.com/Tob1asDocker/rpi-mariadb"
+	org.opencontainers.image.source="https://github.com/lalexdotcom/docker-mariadb"
 
 # add our user and group first to make sure their IDs get assigned consistently, regardless of whatever dependencies get added
 ENV USER_ID 1000
