@@ -19,25 +19,23 @@ The intent is also to maintain high compatibility with MySQL, ensuring a "drop-i
 #### Docker-Compose
 
 ```yaml
-# Use root/my-secret-pw as user/password credentials
 version: '2.4'
 services:
   mariadb:
     build:
       context: https://github.com/lalexdotcom/docker-mariadb.git
-    #container_name: mariadb
+    container_name: mariadb
+    image: lalexdotcom/mariadb
     volumes:
-      - ./mariadb:/var/lib/mysql
-      #- /etc/timezone:/etc/timezone:ro
-      #- /etc/localtime:/etc/localtime:ro
+      - ./data/mariadb:/var/lib/mysql
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     environment:
-       MYSQL_ROOT_PASSWORD: my-secret-pw
-       #MYSQL_RANDOM_ROOT_PASSWORD: "yes"
-       MYSQL_DATABASE: user
-       MYSQL_USER: user
-       MYSQL_PASSWORD: my-secret-pw
-       USER_ID: 1000
-       GROUP_ID: 1000
+      MYSQL_DATABASE: exampledb
+      MYSQL_USER: exampleuser
+      MYSQL_PASSWORD: examplepass
+      MYSQL_ROOT_PASSWORD: rootpassword
+     #MYSQL_RANDOM_ROOT_PASSWORD: "yes"
     restart: unless-stopped
     ports:
       - 3306:3306
