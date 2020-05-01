@@ -235,23 +235,67 @@ docker_setup_db() {
 		DROP DATABASE IF EXISTS test ;
 	EOSQL
 
-	# Creates a custom database and user if specified
-	if [ -n "$MYSQL_DATABASE" ]; then
-		mysql_note "Creating database ${MYSQL_DATABASE}"
-		docker_process_sql --database=mysql <<<"CREATE DATABASE IF NOT EXISTS \`$MYSQL_DATABASE\` ;"
-	fi
+	# TO TEST
 
-	if [ -n "$MYSQL_USER" ] && [ -n "$MYSQL_PASSWORD" ]; then
-		mysql_note "Creating user ${MYSQL_USER}"
-		docker_process_sql --database=mysql <<<"CREATE USER '$MYSQL_USER'@'%' IDENTIFIED BY '$MYSQL_PASSWORD' ;"
+	# SET @sql_found='SELECT 1 INTO @x';
+	# SET @sql_fresh='SELECT 2 INTO @y';
+	# SELECT COUNT(1) INTO @found_count FROM mysql.user WHERE user='randomuser' AND host='%';
+	# SET @sql=IF(@found_count=1,@sql_found,@sql_fresh);
+	# PREPARE s FROM @sql;
+	# EXECUTE s;
+	# DEALLOCATE PREPARE s;
 
-		if [ -n "$MYSQL_DATABASE" ]; then
-			mysql_note "Giving user ${MYSQL_USER} access to schema ${MYSQL_DATABASE}"
-			docker_process_sql --database=mysql <<<"GRANT ALL ON \`$MYSQL_DATABASE\`.* TO '$MYSQL_USER'@'%' ;"
+	mysql_note ">> Create DBs and Users"
+	while IFS='=' read -r name value ; do
+		if [[ $name =~ ^MYSQL_DATABASE(_[A-Z_]+)$ ]] || [[ $name =~ ^MYSQL_DATABASE$ ]]
+		then
+			local db_name=$value
+			local db_key=${BASH_REMATCH[1]}
+			if [[ -n "$db_name" ]]
+			then
+				mysql_note "Creating database '${db_name}'"
+				docker_process_sql --database=mysql <<<"CREATE DATABASE IF NOT EXISTS \`$db_name\` ;"
+			fi
 		fi
+		if [[ $name =~ ^MYSQL_USER(_[A-Z_]+)$ ]] || [[ $name =~ ^MYSQL_USER$ ]]
+		then
+			local db_key=${BASH_REMATCH[1]}
+			local db_pass_var="MYSQL_PASSWORD$db_key"
+			local db_name_var="MYSQL_DATABASE$db_key"
+			local db_name=${!db_name_var}
+			local db_user=$value
+			local db_pass=${!db_pass_var}
+			if [[ -n "$db_user" ]] && [[ -n "$db_pass" ]]
+			then
+				mysql_note "Creating user '${db_user}'"
+				docker_process_sql --database=mysql <<<"CREATE USER IF NOT EXISTS '$db_user'@'%' IDENTIFIED BY '$db_pass' ;"
+				if [[ -n "$db_name" ]]
+				then
+					mysql_note "Giving user ${db_user} access to schema '${db_name}'"
+					docker_process_sql --database=mysql <<<"GRANT ALL ON \`$db_name\`.* TO '$db_user'@'%' ;"
+				fi
+				docker_process_sql --database=mysql <<<"FLUSH PRIVILEGES ;"
+			fi
+		fi
+	done < <(env|sort -h)
 
-		docker_process_sql --database=mysql <<<"FLUSH PRIVILEGES ;"
-	fi
+	# Creates a custom database and user if specified
+	# if [ -n "$MYSQL_DATABASE" ]; then
+	# 	mysql_note "Creating database ${MYSQL_DATABASE}"
+	# 	docker_process_sql --database=mysql <<<"CREATE DATABASE IF NOT EXISTS \`$MYSQL_DATABASE\` ;"
+	# fi
+	#
+	# if [ -n "$MYSQL_USER" ] && [ -n "$MYSQL_PASSWORD" ]; then
+	# 	mysql_note "Creating user ${MYSQL_USER}"
+	# 	docker_process_sql --database=mysql <<<"CREATE USER '$MYSQL_USER'@'%' IDENTIFIED BY '$MYSQL_PASSWORD' ;"
+	#
+	# 	if [ -n "$MYSQL_DATABASE" ]; then
+	# 		mysql_note "Giving user ${MYSQL_USER} access to schema ${MYSQL_DATABASE}"
+	# 		docker_process_sql --database=mysql <<<"GRANT ALL ON \`$MYSQL_DATABASE\`.* TO '$MYSQL_USER'@'%' ;"
+	# 	fi
+	#
+	# 	docker_process_sql --database=mysql <<<"FLUSH PRIVILEGES ;"
+	# fi
 }
 
 _mysql_passfile() {
@@ -302,7 +346,8 @@ _main() {
 		fi
 
 		# there's no database, so it needs to be initialized
-		if [ -z "$DATABASE_ALREADY_EXISTS" ]; then
+		if [ -z "$DATABASE_ALREADY_EXISTS" ]
+		then
 			docker_verify_minimum_env
 			docker_init_database_dir "$@"
 
@@ -320,7 +365,23 @@ _main() {
 			echo
 			mysql_note "MySQL init process done. Ready for start up."
 			echo
+		else
+			docker_verify_minimum_env
+			docker_init_database_dir "$@"
+
+			mysql_note "Starting temporary server"
+			docker_temp_server_start "$@"
+			mysql_note "Temporary server started."
+
+			mysql_note "Stopping temporary server"
+			docker_temp_server_stop
+			mysql_note "Temporary server stopped"
+
+			echo
+			mysql_note "MySQL init process done. Ready for start up."
+			echo
 		fi
+
 	fi
 	exec "$@"
 }
